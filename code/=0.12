@@ -1,0 +1,6 @@
+Requirement already satisfied: imbalanced-learn in /home/hit/miniconda3/envs/fx1/lib/python3.11/site-packages (0.8.1)
+Requirement already satisfied: numpy>=1.13.3 in /home/hit/miniconda3/envs/fx1/lib/python3.11/site-packages (from imbalanced-learn) (2.2.6)
+Requirement already satisfied: scipy>=0.19.1 in /home/hit/miniconda3/envs/fx1/lib/python3.11/site-packages (from imbalanced-learn) (1.16.3)
+Requirement already satisfied: scikit-learn>=0.24 in /home/hit/miniconda3/envs/fx1/lib/python3.11/site-packages (from imbalanced-learn) (1.7.2)
+Requirement already satisfied: joblib>=0.11 in /home/hit/miniconda3/envs/fx1/lib/python3.11/site-packages (from imbalanced-learn) (1.5.2)
+Requirement already satisfied: threadpoolctl>=3.1.0 in /home/hit/miniconda3/envs/fx1/lib/python3.11/site-packages (from scikit-learn>=0.24->imbalanced-learn) (3.6.0)

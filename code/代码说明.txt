@@ -1,0 +1,32 @@
+/home/hit/fx/Mamba-UNet/code的代码说明：
+/home/hit/fx/Mamba-UNet/code/train_Semi_Mamba_UNet.py
+用两个数据集的数据做分割的半监督训练，model1、model2可以自己设置
+
+/home/hit/fx/Mamba-UNet/code/test_Semi_Mamba_UNet_thyroid.py
+测试，只能在labeled数据集上面得到dice、iou这些
+
+/home/hit/fx/Mamba-UNet/code/gen_mask_Semi_Mamba_UNet_thyroid.py
+使用训练的模型获得两个数据集的所有的mask（0、255），保存到对应的文件夹中
+
+/home/hit/fx/Mamba-UNet/code/gen_ring_mask_and_image.py
+是使用maks得到外环的mask和外环的图片
+
+/home/hit/fx/Mamba-UNet/code/train_vim_dual_cls.py
+是用image做边界清晰、规则分类，加载了分割的模型作为特征提取，在前段冻结权重
+/home/hit/fx/Mamba-UNet/code/train_vim_dual_cls_image_ring.py
+是用image_ring做边界清晰、规则分类，之前的分割模型也就不能冻结了。 但是没有用，可能因为上一个有分割网络预训练的编码器，但是对ring没有
+
+# 下面两个mil都没用
+/home/hit/fx/Mamba-UNet/code/train_vim_mil_patch_attention.py
+是用mil的
+/home/hit/fx/Mamba-UNet/code/train_mil_attention_deepmil.py
+mil的简单尝试
+
+/home/hit/fx/Mamba-UNet/code/crop_image_from_mask_square.py
+是把ring找正方形框，裁剪image。存到/home/hit/fx/Mamba-UNet/run_result/mambaunet_m1_vim_m2_vim/crop_image
+
+/home/hit/fx/Mamba-UNet/code/extract_cranet_dense_features_v2.py
+传统特征
+
+/home/hit/fx/Mamba-UNet/code/run_label5_classifiers.py
+使用传统特征分类

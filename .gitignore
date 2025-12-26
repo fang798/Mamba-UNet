@@ -1,0 +1,16 @@
+# python cache
+**/__pycache__/
+
+# experiment outputs
+run_result/
+
+# third-party / submodules / compiled
+mamba/
+causal-conv1d/
+
+# build artifacts (防止再出现 100MB .so)
+**/build/
+*.so
+*.pyd
+*.dll
+*.dylib
