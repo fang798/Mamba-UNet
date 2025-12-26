@@ -188,9 +188,10 @@ def main() -> None:
             "random_state": args.seed,
             "n_jobs": -1,
         }
-        base_tree = DecisionTreeClassifier(
-            class_weight=class_weight, random_state=args.seed
-        )
+        # base_tree = DecisionTreeClassifier(
+        #     class_weight=class_weight, random_state=args.seed
+        # )
+        base_tree = DecisionTreeClassifier(random_state=args.seed)
         try:
             models["bbc"] = BalancedBaggingClassifier(
                 estimator=base_tree, **bbc_kwargs
