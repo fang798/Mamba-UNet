@@ -7,15 +7,15 @@ Each epoch重新做随机增广，因此同一张图会产生多行特征（更�
 
 Example:
 python /home/hit/fx/Mamba-UNet/code/extract_cranet_dense_features_v2.py \
-  --img_source ring
+  --img_source ring \
   --epochs 200 \
-  --write_mode overwrite
+  --write_mode overwrite \
   --batch_size 32 \
   --target_cols "4" \
   --num_workers 4 \
   --num_threads 4 \
   --mask_dir /home/hit/fx/Mamba-UNet/run_result/mambaunet_m1_vim_m2_vim/mask_all_255 \
-  --out_csv /home/hit/fx/Mamba-UNet/run_result/cranet_dense_features_ring.csv \
+  --out_csv /home/hit/fx/Mamba-UNet/run_result/extract_feature/cranet_dense_features_ring.csv
 
 --write_mode append|overwrite
 --start_epoch：手动指定从哪一轮开始（覆盖自动续写）
@@ -311,7 +311,7 @@ def main() -> None:
     parser.add_argument(
         "--out_csv",
         type=str,
-        default="/home/hit/fx/Mamba-UNet/run_result/cranet_dense_features.csv",
+        default="/home/hit/fx/Mamba-UNet/run_result/extract_feature/cranet_dense_features.csv",
     )
     parser.add_argument("--seed", type=int, default=42)
     args = parser.parse_args()
@@ -364,6 +364,16 @@ def main() -> None:
             "Use --epochs to set the final epoch or --write_mode overwrite."
         )
         return
+
+    log_dir = "/home/hit/fx/Mamba-UNet/run_result/extract_feature"
+    os.makedirs(log_dir, exist_ok=True)
+    log_path = os.path.join(log_dir, "params.txt")
+    with open(log_path, "w", encoding="utf-8") as lf:
+        lf.write("args:\n")
+        for k, v in sorted(vars(args).items()):
+            lf.write(f"{k}={v}\n")
+        lf.write(f"start_epoch={start_epoch}\n")
+        lf.write(f"write_header={write_header}\n")
 
     with open(args.out_csv, file_mode, newline="") as f:
         writer = csv.writer(f)
