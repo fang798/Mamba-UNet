@@ -7,13 +7,19 @@ Each epoch重新做随机增广，因此同一张图会产生多行特征（更�
 
 Example:
 python /home/hit/fx/Mamba-UNet/code/extract_cranet_dense_features_v2.py \
-  --epochs 50 \
+  --img_source ring
+  --epochs 200 \
+  --write_mode overwrite
   --batch_size 32 \
   --target_cols "4" \
   --num_workers 4 \
   --num_threads 4 \
   --mask_dir /home/hit/fx/Mamba-UNet/run_result/mambaunet_m1_vim_m2_vim/mask_all_255 \
-  --out_csv /home/hit/fx/Mamba-UNet/run_result/cranet_dense_features.csv
+  --out_csv /home/hit/fx/Mamba-UNet/run_result/cranet_dense_features_ring.csv \
+
+--write_mode append|overwrite
+--start_epoch：手动指定从哪一轮开始（覆盖自动续写）
+--epochs：总轮数
 """
 
 import argparse
@@ -68,6 +74,8 @@ LABEL_FILE1 = os.path.join(ROOT_DIR, "batch1_single_nodule_class2_with_result.xl
 LABEL_FILE2 = os.path.join(ROOT_DIR, "second_batch/batch2_single_nodule_class2_with_result.xlsx")
 IMG_DIR1 = "/home/hit/fx/Mamba-UNet/run_result/mambaunet_m1_vim_m2_vim/image_ring"
 IMG_DIR2 = "/home/hit/fx/Mamba-UNet/run_result/mambaunet_m1_vim_m2_vim/image_ring"
+RAW_LABELED_IMG_DIR = os.path.join(ROOT_DIR, "first_batch_roi2/image")
+RAW_UNLABELED_IMG_DIR = os.path.join(ROOT_DIR, "second_batch/img_roi")
 
 
 def setup_seed(seed: int) -> None:
@@ -109,15 +117,15 @@ class JointTransform:
             [
                 trforms.class_FixedResize(size=(224, 224)),
                 trforms.class_RandomBrightnessContrast(
-                    brightness_range=(-20, 20),
-                    contrast_range=(0.9, 1.1),
+                    brightness_range=(-30, 30),
+                    contrast_range=(0.8, 1.2),
                 ),
                 trforms.class_RandomRotate(30),
                 trforms.class_RandomAffine(translate=(0.2, 0.2), scale=(0.8, 1.2)),
                 trforms.class_RandomHorizontalFlip(),
                 trforms.class_RandomVerticalFlip(),
                 trforms.class_ToTensor(),
-                trforms.class_Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5)),
+                # trforms.class_Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5)),
             ]
         )
 
@@ -132,10 +140,12 @@ class NoduleFeatureDataset(Dataset):
         self,
         mask_dir: str,
         target_cols: Tuple[int, ...],
+        img_source: str,
         seed: int = 42,
     ) -> None:
         self.mask_dir = mask_dir
         self.target_cols = target_cols
+        self.img_source = img_source
         self.transform = JointTransform()
 
         df1 = _read_label_df(LABEL_FILE1, batch_id=1)
@@ -153,15 +163,40 @@ class NoduleFeatureDataset(Dataset):
         self.labels = []
         self.names = []
 
-        for img_name in all_files_1:
-            img_name_str = str(img_name)
+        if self.img_source == "raw":
+            img_dir1 = RAW_LABELED_IMG_DIR
+            img_dir2 = RAW_UNLABELED_IMG_DIR
+        else:
+            img_dir1 = IMG_DIR1
+            img_dir2 = IMG_DIR2
+
+        def _candidates_labeled(img_name_str: str) -> List[str]:
+            if self.img_source == "raw":
+                return [img_name_str.removeprefix("1_") + ext for ext in [".png", ".jpg", ".jpeg"]]
             base_raw = img_name_str
             base_no_prefix = img_name_str.removeprefix("1_")
             candidates = [base_raw + ext for ext in [".png", ".jpg", ".jpeg"]] + [
                 base_no_prefix + ext for ext in [".png", ".jpg", ".jpeg"]
             ]
-            candidates = list(dict.fromkeys(candidates))
-            img_path = _find_first_existing(IMG_DIR1, candidates)
+            return list(dict.fromkeys(candidates))
+
+        def _candidates_unlabeled(img_name_str: str) -> List[str]:
+            if self.img_source == "raw":
+                return [img_name_str + "_nroi" + ext for ext in [".png", ".jpg", ".jpeg"]]
+            base_raw = img_name_str
+            base_no_prefix = img_name_str.removeprefix("2_")
+            candidates = [base_raw + "_nroi" + ext for ext in [".png", ".jpg", ".jpeg"]] + [
+                base_no_prefix + "_nroi" + ext for ext in [".png", ".jpg", ".jpeg"]
+            ]
+            candidates += [base_raw + ext for ext in [".png", ".jpg", ".jpeg"]] + [
+                base_no_prefix + ext for ext in [".png", ".jpg", ".jpeg"]
+            ]
+            return list(dict.fromkeys(candidates))
+
+        for img_name in all_files_1:
+            img_name_str = str(img_name)
+            candidates = _candidates_labeled(img_name_str)
+            img_path = _find_first_existing(img_dir1, candidates)
             if not img_path:
                 continue
             mask_path = _find_mask_path(mask_dir, os.path.splitext(os.path.basename(img_path))[0])
@@ -178,16 +213,8 @@ class NoduleFeatureDataset(Dataset):
 
         for img_name in all_files_2:
             img_name_str = str(img_name)
-            base_raw = img_name_str
-            base_no_prefix = img_name_str.removeprefix("2_")
-            candidates = [base_raw + "_nroi" + ext for ext in [".png", ".jpg", ".jpeg"]] + [
-                base_no_prefix + "_nroi" + ext for ext in [".png", ".jpg", ".jpeg"]
-            ]
-            candidates += [base_raw + ext for ext in [".png", ".jpg", ".jpeg"]] + [
-                base_no_prefix + ext for ext in [".png", ".jpg", ".jpeg"]
-            ]
-            candidates = list(dict.fromkeys(candidates))
-            img_path = _find_first_existing(IMG_DIR2, candidates)
+            candidates = _candidates_unlabeled(img_name_str)
+            img_path = _find_first_existing(img_dir2, candidates)
             if not img_path:
                 continue
             mask_path = _find_mask_path(mask_dir, os.path.splitext(os.path.basename(img_path))[0])
@@ -252,14 +279,34 @@ def _align_inputs_for_cranet(
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--epochs", type=int, default=5)
-    parser.add_argument("--batch_size", type=int, default=16)
+    parser.add_argument("--batch_size", type=int, default=4)
     parser.add_argument("--target_cols", type=str, default="4")
     parser.add_argument("--num_workers", type=int, default=0)
-    parser.add_argument("--num_threads", type=int, default=4)
+    parser.add_argument("--num_threads", type=int, default=1)
+    parser.add_argument(
+        "--write_mode",
+        type=str,
+        default="overwrite",
+        choices=["append", "overwrite"],
+        help="append: keep existing csv and continue; overwrite: start a new file",
+    )
+    parser.add_argument(
+        "--start_epoch",
+        type=int,
+        default=None,
+        help="start epoch (override auto-resume when append)",
+    )
     parser.add_argument(
         "--mask_dir",
         type=str,
         default="/home/hit/fx/Mamba-UNet/run_result/mambaunet_m1_vim_m2_vim/mask_all_255",
+    )
+    parser.add_argument(
+        "--img_source",
+        type=str,
+        default="raw",
+        choices=["ring", "raw"],
+        help="ring: use image_ring; raw: use original images (same as mask generation)",
     )
     parser.add_argument(
         "--out_csv",
@@ -275,6 +322,7 @@ def main() -> None:
     dataset = NoduleFeatureDataset(
         mask_dir=args.mask_dir,
         target_cols=target_cols,
+        img_source=args.img_source,
         seed=args.seed,
     )
     loader = DataLoader(
@@ -290,9 +338,34 @@ def main() -> None:
     header += [f"image_f{i}" for i in range(11)]
     header += [f"unclear_f{i}" for i in range(3)]
 
-    write_header = not os.path.exists(args.out_csv)
+    file_exists = os.path.exists(args.out_csv)
+    file_mode = "a" if args.write_mode == "append" else "w"
+    write_header = (file_mode == "w") or (not file_exists)
     bad_log = os.path.splitext(args.out_csv)[0] + "_bad.txt"
-    with open(args.out_csv, "a", newline="") as f:
+
+    start_epoch = args.start_epoch
+    if start_epoch is None:
+        if args.write_mode == "append" and file_exists:
+            try:
+                if args.out_csv.lower().endswith((".xlsx", ".xls")):
+                    epoch_df = pd.read_excel(args.out_csv, usecols=["epoch"])
+                else:
+                    epoch_df = pd.read_csv(args.out_csv, usecols=["epoch"])
+                max_epoch = int(epoch_df["epoch"].max())
+                start_epoch = max_epoch + 1
+            except Exception:
+                start_epoch = 1
+        else:
+            start_epoch = 1
+
+    if start_epoch > args.epochs:
+        print(
+            f"Nothing to do: start_epoch={start_epoch} > epochs={args.epochs}. "
+            "Use --epochs to set the final epoch or --write_mode overwrite."
+        )
+        return
+
+    with open(args.out_csv, file_mode, newline="") as f:
         writer = csv.writer(f)
         if write_header:
             writer.writerow(header)
@@ -337,7 +410,7 @@ def main() -> None:
             return row, err_msgs
 
         with ThreadPoolExecutor(max_workers=max(1, args.num_threads)) as executor:
-            for epoch in range(1, args.epochs + 1):
+            for epoch in range(start_epoch, args.epochs + 1):
                 for image_tensor, mask_logits, label, name in tqdm(
                     loader,
                     desc=f"Epoch {epoch}/{args.epochs}",

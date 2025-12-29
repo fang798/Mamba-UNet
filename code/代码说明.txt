@@ -1,6 +1,8 @@
 /home/hit/fx/Mamba-UNet/code的代码说明：
+
+
 /home/hit/fx/Mamba-UNet/code/train_Semi_Mamba_UNet.py
-用两个数据集的数据做分割的半监督训练，model1、model2可以自己设置
+用两个数据集的数据做分割的半监督训练，model1、model2可以自己设置（在thyroid/thyroid_compare/TRFE-Net-for-thyroid-nodule-segmentation-main/train_all7_dense_nodule_seg.py有很多分割模型）
 
 /home/hit/fx/Mamba-UNet/code/test_Semi_Mamba_UNet_thyroid.py
 测试，只能在labeled数据集上面得到dice、iou这些
@@ -25,7 +27,7 @@ mil的简单尝试
 /home/hit/fx/Mamba-UNet/code/crop_image_from_mask_square.py
 是把ring找正方形框，裁剪image。存到/home/hit/fx/Mamba-UNet/run_result/mambaunet_m1_vim_m2_vim/crop_image
 
-/home/hit/fx/Mamba-UNet/code/extract_cranet_dense_features_v2.py
+/home/hit/fx/Mamba-UNet/code/extract_cranet_dense_features_v2.py(初始是根据network/thyroid/thyroid_compare/TRFE-Net-for-thyroid-nodule-segmentation-main/model/CRANet_dense.py里的函数)
 传统特征
 
 /home/hit/fx/Mamba-UNet/code/run_label5_classifiers.py
